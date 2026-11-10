@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เลข 3 ตัว ออกอะไรบ่อย?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#fafaf7; --ink:#1d2433; --mute:#6b7385; --line:#e3e5ea; --hit:#3b3fd8; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 "IBM Plex Sans Thai", system-ui, sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:1.6rem; margin:0 0 4px; }
+  .sub, .note { color:var(--mute); font-size:.9rem; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin:16px 0; }
+  button, input { font:inherit; border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:6px 14px; }
+  button[aria-pressed="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
+  button:focus-visible, input:focus-visible, .cell:focus-visible { outline:2px solid var(--hit); outline-offset:2px; }
+  .summary { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:8px 0 16px; }
+  .summary div { border:1px solid var(--line); background:#fff; border-radius:10px; padding:12px 14px; }
+  .summary b { display:block; font-size:1.15rem; color:var(--hit); }
+  #detail { min-height:3.2em; border-left:3px solid var(--hit); padding:4px 12px; margin:12px 0; }
+  .grid { display:grid; grid-template-columns:2.6rem repeat(10, 1fr); gap:2px; font-size:.72rem; }
+  .grid .h { color:var(--mute); text-align:center; align-self:center; }
+  .cell { aspect-ratio:1; border-radius:3px; background:#eceef3; border:0; padding:0; cursor:pointer; font-size:.62rem; color:transparent; }
+  .cell[data-n="1"] { background:#b9bbf2; }
+  .cell[data-n="2"] { background:#8387e8; }
+  .cell[data-n="3"] { background:#575be0; }
+  .cell[data-n="4"], .cell[data-n="5"], .cell[data-n="6"] { background:#2c2fa8; }
+  .cell.sel { outline:2px solid var(--ink); }
+</style>
+</head>
+<body>
+<main>
+  <h1>เลข 3 ตัว ออกอะไรบ่อย?</h1>
+  <p class="sub" id="range">กำลังโหลด…</p>
+
+  <div class="row" id="kind">
+    <button data-k="back3" aria-pressed="true">เลขท้าย 3 ตัว</button>
+    <button data-k="front3" aria-pressed="false">เลขหน้า 3 ตัว</button>
+  </div>
+  <div class="row" id="years">
+    <button data-y="5" aria-pressed="false">5 ปี</button>
+    <button data-y="10" aria-pressed="false">10 ปี</button>
+    <button data-y="20" aria-pressed="true">ทั้งหมด</button>
+    <input id="find" inputmode="numeric" maxlength="3" placeholder="ค้นหาเลข เช่น 482" aria-label="ค้นหาเลข 3 ตัว">
+  </div>
+
+  <div class="summary">
+    <div>ออกบ่อยสุด<b id="top">-</b></div>
+    <div>ไม่เคยออกเลย<b id="never">-</b></div>
+  </div>
+
+  <div id="detail" aria-live="polite">แตะที่ช่องเพื่อดูวันที่ที่เคยออก</div>
+  <div class="grid" id="grid" role="grid"></div>
+
+  <p class="note">แถว = สองหลักแรก (00–99) คอลัมน์ = หลักสุดท้าย (0–9) ช่องเข้มคือออกบ่อย
+  หวยแต่ละงวดสุ่มแยกกัน สถิติย้อนหลังไม่ได้ช่วยทำนายงวดถัดไป ใช้ดูเป็นข้อมูลเท่านั้น</p>
+</main>
+
+<script>
+const state = { kind: "back3", years: 20, draws: [], hits: {} };
+const $ = id => document.getElementById(id);
+const fmt = iso => new Date(iso).toLocaleDateString("th-TH", { day:"numeric", month:"short", year:"numeric" });
+
+fetch("data/draws.json").then(r => r.json()).then(d => { state.draws = d; render(); })
+  .catch(() => { $("range").textContent = "โหลดข้อมูลไม่ได้ ลองรีเฟรชอีกครั้ง"; });
+
+function render() {
+  const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear() - state.years);
+  const draws = state.draws.filter(d => new Date(d.date) >= cutoff);
+  $("range").textContent = draws.length
+    ? `${fmt(draws[0].date)} – ${fmt(draws.at(-1).date)} รวม ${draws.length} งวด`
+    : "ไม่มีข้อมูลในช่วงนี้";
+
+  const hits = {};                       // "482" -> ["2026-10-16", ...]
+  for (const d of draws) for (const n of d[state.kind]) (hits[n] ??= []).push(d.date);
+  state.hits = hits;
+
+  const all = Array.from({ length: 1000 }, (_, i) => String(i).padStart(3, "0"));
+  const max = Math.max(0, ...all.map(n => (hits[n] || []).length));
+  const tops = all.filter(n => (hits[n] || []).length === max);
+  $("top").textContent = max ? `${tops.slice(0, 4).join(" · ")}${tops.length > 4 ? ` +${tops.length - 4}` : ""} (${max} ครั้ง)` : "-";
+  $("never").textContent = `${all.filter(n => !hits[n]).length} จาก 1,000 เลข`;
+
+  const g = $("grid");
+  g.innerHTML = "<span></span>" + [...Array(10).keys()].map(c => `<span class="h">${c}</span>`).join("");
+  for (let r = 0; r < 100; r++) {
+    const rr = String(r).padStart(2, "0");
+    g.insertAdjacentHTML("beforeend", `<span class="h">${rr}_</span>`);
+    for (let c = 0; c < 10; c++) {
+      const n = rr + c, k = (hits[n] || []).length;
+      g.insertAdjacentHTML("beforeend",
+        `<button class="cell" data-num="${n}" data-n="${Math.min(k, 6)}" aria-label="${n} ออก ${k} ครั้ง"></button>`);
+    }
+  }
+}
+
+function show(n) {
+  document.querySelectorAll(".cell.sel").forEach(e => e.classList.remove("sel"));
+  document.querySelector(`.cell[data-num="${n}"]`)?.classList.add("sel");
+  const h = state.hits[n] || [];
+  $("detail").innerHTML = `<b>${n}</b> ออก ${h.length} ครั้ง` +
+    (h.length ? `<br>${h.slice().reverse().map(fmt).join(" · ")}` : " (ไม่เคยออกในช่วงนี้)");
+}
+
+$("grid").addEventListener("click", e => e.target.dataset.num && show(e.target.dataset.num));
+$("find").addEventListener("input", e => { const v = e.target.value.replace(/\D/g, ""); e.target.value = v; if (v.length === 3) show(v); });
+document.querySelectorAll("#kind button, #years button").forEach(b => b.addEventListener("click", () => {
+  const group = b.parentElement;
+  group.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  if (b.dataset.k) state.kind = b.dataset.k;
+  if (b.dataset.y) state.years = +b.dataset.y;
+  render();
+}));
+</script>
+</body>
+</html>
