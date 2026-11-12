@@ -37,8 +37,8 @@
   <p class="sub" id="range">กำลังโหลด…</p>
 
   <div class="row" id="kind">
-    <button data-k="back3" aria-pressed="true">เลขท้าย 3 ตัว</button>
-    <button data-k="front3" aria-pressed="false">เลขหน้า 3 ตัว</button>
+    <button data-k="front3" aria-pressed="true">เลขหน้า 3 ตัว</button>
+    <button data-k="back3" aria-pressed="false">เลขท้าย 3 ตัว</button>
   </div>
   <div class="row" id="years">
     <button data-y="5" aria-pressed="false">5 ปี</button>
@@ -55,12 +55,12 @@
   <div id="detail" aria-live="polite">แตะที่ช่องเพื่อดูวันที่ที่เคยออก</div>
   <div class="grid" id="grid" role="grid"></div>
 
-  <p class="note">แถว = สองหลักแรก (00–99) คอลัมน์ = หลักสุดท้าย (0–9) ช่องเข้มคือออกบ่อย
+  <p class="note">ตัวเลขหน้าแถวคือเลขตั้งต้นของแถว บวกกับหัวคอลัมน์จะได้เลขของช่องนั้น (เช่น แถว 010 คอลัมน์ +3 = 013) ช่องเข้มคือออกบ่อย
   หวยแต่ละงวดสุ่มแยกกัน สถิติย้อนหลังไม่ได้ช่วยทำนายงวดถัดไป ใช้ดูเป็นข้อมูลเท่านั้น</p>
 </main>
 
 <script>
-const state = { kind: "back3", years: 20, draws: [], hits: {} };
+const state = { kind: "front3", years: 20, draws: [], hits: {} };
 const $ = id => document.getElementById(id);
 const fmt = iso => new Date(iso).toLocaleDateString("th-TH", { day:"numeric", month:"short", year:"numeric" });
 
@@ -85,10 +85,10 @@ function render() {
   $("never").textContent = `${all.filter(n => !hits[n]).length} จาก 1,000 เลข`;
 
   const g = $("grid");
-  g.innerHTML = "<span></span>" + [...Array(10).keys()].map(c => `<span class="h">${c}</span>`).join("");
+  g.innerHTML = "<span></span>" + [...Array(10).keys()].map(c => `<span class="h">+${c}</span>`).join("");
   for (let r = 0; r < 100; r++) {
     const rr = String(r).padStart(2, "0");
-    g.insertAdjacentHTML("beforeend", `<span class="h">${rr}_</span>`);
+    g.insertAdjacentHTML("beforeend", `<span class="h">${rr}0</span>`);
     for (let c = 0; c < 10; c++) {
       const n = rr + c, k = (hits[n] || []).length;
       g.insertAdjacentHTML("beforeend",
