@@ -1,12 +1,8 @@
-"""สร้าง data/draws.json (เลขหน้า/ท้าย 3 ตัว) จากชุดข้อมูล WimPalaLab/thai-lottery-data
-ซึ่งดึงผลจาก API ของสำนักงานสลากฯ (GLO) อัปเดตทุกวัน
-ต้นทาง: https://github.com/WimPalaLab/thai-lottery-data
-"""
 import csv, io, json, os, urllib.request
 
 URL = "https://raw.githubusercontent.com/WimPalaLab/thai-lottery-data/main/data/thai_lottery.csv"
 OUT = os.path.join(os.path.dirname(__file__), "..", "data", "draws.json")
-FROM_DATE = "2015-09-01"   # ก่อนหน้านี้ไม่มีเลขหน้า 3 ตัว และเลขท้าย 3 ตัวมี 4 หมายเลข
+FROM_DATE = "2015-09-01"
 
 def numbers(cell):
     return [n.strip() for n in (cell or "").split("|") if n.strip().isdigit()]
@@ -17,14 +13,14 @@ def parse(text):
         if row["draw_date"] < FROM_DATE:
             continue
         front, back = numbers(row.get("front3")), numbers(row.get("back3"))
-        if front and back:                     # ข้ามงวดที่ผลยังไม่ครบ
+        if front and back:
             draws.append({"date": row["draw_date"], "front3": front, "back3": back})
     return sorted(draws, key=lambda d: d["date"])
 
 def main():
     req = urllib.request.Request(URL, headers={"User-Agent": "lottery-stats/1.0"})
     with urllib.request.urlopen(req, timeout=60) as r:
-        text = r.read().decode("utf-8-sig")    # ไฟล์ต้นทางมี BOM
+        text = r.read().decode("utf-8-sig")
     draws = parse(text)
     if not draws:
         raise SystemExit("ไม่พบข้อมูล: รูปแบบไฟล์ต้นทางอาจเปลี่ยน")
